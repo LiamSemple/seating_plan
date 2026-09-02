@@ -16,6 +16,9 @@ type ClassroomCanvasProps = {
     desks: { x: number; y: number; width: number; height: number }[],
   ) => string[]
   onDeleteDesk: (deskId: string) => void
+  onDeleteDesks: (ids: string[]) => void
+  onBeginUndo: () => void
+  onUndo: () => void
   onStudentDragStart: (
     studentId: string,
     fromDeskId: string | null,
@@ -71,12 +74,18 @@ export function ClassroomCanvas({
   onMoveDesks,
   onAddEmptyDesks,
   onDeleteDesk,
+  onDeleteDesks,
+  onBeginUndo,
+  onUndo,
   onStudentDragStart,
 }: ClassroomCanvasProps) {
   const canvasRef = useRef<HTMLDivElement>(null)
   const desksRef = useRef(desks)
   const onMoveDesksRef = useRef(onMoveDesks)
   const onAddEmptyDesksRef = useRef(onAddEmptyDesks)
+  const onDeleteDesksRef = useRef(onDeleteDesks)
+  const onBeginUndoRef = useRef(onBeginUndo)
+  const onUndoRef = useRef(onUndo)
   const selectedIdsRef = useRef<string[]>([])
   const clipboardRef = useRef<
     { x: number; y: number; width: number; height: number }[]
@@ -96,6 +105,9 @@ export function ClassroomCanvas({
     desksRef.current = desks
     onMoveDesksRef.current = onMoveDesks
     onAddEmptyDesksRef.current = onAddEmptyDesks
+    onDeleteDesksRef.current = onDeleteDesks
+    onBeginUndoRef.current = onBeginUndo
+    onUndoRef.current = onUndo
     selectedIdsRef.current = visibleSelectedIds
   })
 
@@ -104,6 +116,7 @@ export function ClassroomCanvas({
     startX: number
     startY: number
     origins: { id: string; x: number; y: number }[]
+    didSnapshot: boolean
   } | null>(null)
 
   useEffect(() => {
@@ -114,6 +127,10 @@ export function ClassroomCanvas({
       const canvas = canvasRef.current
       if (!drag || !canvas) return
       const point = canvasPoint(e.clientX, e.clientY, canvas)
+      if (!drag.didSnapshot) {
+        drag.didSnapshot = true
+        onBeginUndoRef.current()
+      }
       const rawDx = point.x - drag.startX
       const rawDy = point.y - drag.startY
       const moving = drag.origins
@@ -211,6 +228,22 @@ export function ClassroomCanvas({
 
     function onKeyDown(e: KeyboardEvent) {
       if (typingInField()) return
+
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z' && !e.shiftKey) {
+        e.preventDefault()
+        onUndoRef.current()
+        return
+      }
+
+      if (e.key === 'Backspace' || e.key === 'Delete') {
+        const selected = selectedIdsRef.current
+        if (selected.length === 0) return
+        e.preventDefault()
+        onDeleteDesksRef.current(selected)
+        setSelectedIds([])
+        return
+      }
+
       const copy = (e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'c'
       const paste = (e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'v'
       if (!copy && !paste) return
@@ -377,6 +410,7 @@ export function ClassroomCanvas({
                     x: item.x,
                     y: item.y,
                   })),
+                  didSnapshot: false,
                 }
                 setDraggingDeskIds(ids)
               }}

@@ -140,6 +140,9 @@ export default function App() {
           onMoveDesks={plan.moveDesks}
           onAddEmptyDesks={plan.addEmptyDesks}
           onDeleteDesk={plan.deleteDesk}
+          onDeleteDesks={plan.deleteDesks}
+          onBeginUndo={plan.beginUndo}
+          onUndo={plan.undo}
           onStudentDragStart={onStudentDragStart}
         />
         <Roster

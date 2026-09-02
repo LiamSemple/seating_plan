@@ -1,7 +1,7 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { parseNames } from './parseNames'
 import { createClass, createInitialState, loadState, saveState } from './storage'
-import { DESK_HEIGHT, DESK_WIDTH, type SchoolClass } from './types'
+import { DESK_HEIGHT, DESK_WIDTH, type AppState, type SchoolClass } from './types'
 
 function nextClassName(classes: SchoolClass[]): string {
   const used = new Set(classes.map((cls) => cls.name))
@@ -21,10 +21,30 @@ function nextDeskPosition(desks: SchoolClass['desks']): { x: number; y: number }
 
 export function useSeatingPlan() {
   const [state, setState] = useState(loadState)
+  const stateRef = useRef(state)
+  const historyRef = useRef<AppState[]>([])
 
   useEffect(() => {
+    stateRef.current = state
     saveState(state)
   }, [state])
+
+  function snapshot() {
+    historyRef.current.push(structuredClone(stateRef.current))
+    if (historyRef.current.length > 80) {
+      historyRef.current.shift()
+    }
+  }
+
+  function beginUndo() {
+    snapshot()
+  }
+
+  function undo() {
+    const previous = historyRef.current.pop()
+    if (!previous) return
+    setState(previous)
+  }
 
   const activeClass = useMemo((): SchoolClass => {
     return (
@@ -48,6 +68,7 @@ export function useSeatingPlan() {
   }
 
   function addClass() {
+    snapshot()
     setState((prev) => {
       const next = createClass(nextClassName(prev.classes))
       return {
@@ -60,6 +81,7 @@ export function useSeatingPlan() {
   function renameClass(id: string, name: string) {
     const trimmed = name.trim()
     if (!trimmed) return
+    snapshot()
     setState((prev) => ({
       ...prev,
       classes: prev.classes.map((cls) =>
@@ -69,6 +91,7 @@ export function useSeatingPlan() {
   }
 
   function deleteClass(id: string) {
+    snapshot()
     setState((prev) => {
       const remaining = prev.classes.filter((cls) => cls.id !== id)
       if (remaining.length === 0) {
@@ -81,6 +104,7 @@ export function useSeatingPlan() {
   }
 
   function addDesk() {
+    snapshot()
     updateActive((cls) => {
       const pos = nextDeskPosition(cls.desks)
       return {
@@ -120,6 +144,7 @@ export function useSeatingPlan() {
     desks: { x: number; y: number; width: number; height: number }[],
   ): string[] {
     const created: string[] = []
+    snapshot()
     updateActive((cls) => {
       const copies = desks.map((desk) => {
         const id = crypto.randomUUID()
@@ -138,19 +163,28 @@ export function useSeatingPlan() {
     return created
   }
 
-  function deleteDesk(deskId: string) {
+  function deleteDesks(ids: string[]) {
+    const unique = [...new Set(ids)]
+    if (unique.length === 0) return
+    snapshot()
     updateActive((cls) => ({
       ...cls,
-      desks: cls.desks.filter((desk) => desk.id !== deskId),
+      desks: cls.desks.filter((desk) => !unique.includes(desk.id)),
     }))
   }
 
+  function deleteDesk(deskId: string) {
+    deleteDesks([deskId])
+  }
+
   function clearDesks() {
+    snapshot()
     updateActive((cls) => ({ ...cls, desks: [] }))
   }
 
   function flipView(canvasWidth: number, canvasHeight: number) {
     if (canvasWidth <= 0 || canvasHeight <= 0) return
+    snapshot()
     updateActive((cls) => ({
       ...cls,
       frontAtTop: !cls.frontAtTop,
@@ -165,6 +199,7 @@ export function useSeatingPlan() {
   function addStudents(text: string): number {
     const parsed = parseNames(text)
     if (parsed.length === 0) return 0
+    snapshot()
     updateActive((cls) => ({
       ...cls,
       students: [
@@ -180,6 +215,7 @@ export function useSeatingPlan() {
   }
 
   function removeStudent(studentId: string) {
+    snapshot()
     updateActive((cls) => ({
       ...cls,
       students: cls.students.filter((student) => student.id !== studentId),
@@ -195,6 +231,7 @@ export function useSeatingPlan() {
     fromDeskId: string | null,
   ) {
     if (targetDeskId === fromDeskId) return
+    snapshot()
     updateActive((cls) => {
       const target = cls.desks.find((desk) => desk.id === targetDeskId)
       if (!target) return cls
@@ -218,6 +255,7 @@ export function useSeatingPlan() {
   }
 
   function unseatStudent(studentId: string) {
+    snapshot()
     updateActive((cls) => ({
       ...cls,
       desks: cls.desks.map((desk) =>
@@ -239,7 +277,10 @@ export function useSeatingPlan() {
     moveDesks,
     addEmptyDesks,
     deleteDesk,
+    deleteDesks,
     clearDesks,
+    beginUndo,
+    undo,
     flipView,
     addStudents,
     removeStudent,

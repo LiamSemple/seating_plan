@@ -327,7 +327,7 @@ export function ClassroomCanvas({
             onFlipView(canvas.clientWidth, canvas.clientHeight)
           }}
         >
-          {frontAtTop ? 'View from back of class' : "Students' view"}
+          {frontAtTop ? "Teacher's view" : "Students' view"}
         </button>
       </div>
       <div

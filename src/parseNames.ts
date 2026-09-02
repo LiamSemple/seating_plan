@@ -63,3 +63,9 @@ export function parseNames(input: string): ParsedName[] {
 export function formatStudentName(lastName: string, firstName: string): string {
   return `${lastName}, ${firstName}`
 }
+
+export function formatDeskName(lastName: string, firstName: string): string {
+  const initial = lastName.trim().charAt(0)
+  if (!initial) return firstName
+  return `${firstName} ${initial.toUpperCase()}.`
+}

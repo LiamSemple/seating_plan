@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { formatStudentName } from '../parseNames'
+import { formatDeskName } from '../parseNames'
 import type { Desk, Student } from '../types'
 
 type ClassroomCanvasProps = {
@@ -190,7 +190,7 @@ export function ClassroomCanvas({
                     )
                   }}
                 >
-                  {formatStudentName(seated.lastName, seated.firstName)}
+                  {formatDeskName(seated.lastName, seated.firstName)}
                 </button>
               ) : (
                 <span className="desk-empty-label">Empty</span>

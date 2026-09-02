@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { ClassTabs } from './components/ClassTabs'
 import { ClassroomCanvas } from './components/ClassroomCanvas'
 import { Roster } from './components/Roster'
-import { formatStudentName } from './parseNames'
+import { formatDeskName } from './parseNames'
 import { useSeatingPlan } from './useSeatingPlan'
 
 type StudentDrag = {
@@ -154,7 +154,7 @@ export default function App() {
           className="drag-ghost"
           style={{ left: studentDrag.x + 12, top: studentDrag.y + 12 }}
         >
-          {formatStudentName(
+          {formatDeskName(
             draggedStudent.lastName,
             draggedStudent.firstName,
           )}

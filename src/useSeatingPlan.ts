@@ -120,6 +120,19 @@ export function useSeatingPlan() {
     updateActive((cls) => ({ ...cls, desks: [] }))
   }
 
+  function flipView(canvasWidth: number, canvasHeight: number) {
+    if (canvasWidth <= 0 || canvasHeight <= 0) return
+    updateActive((cls) => ({
+      ...cls,
+      frontAtTop: !cls.frontAtTop,
+      desks: cls.desks.map((desk) => ({
+        ...desk,
+        x: Math.max(0, canvasWidth - desk.x - desk.width),
+        y: Math.max(0, canvasHeight - desk.y - desk.height),
+      })),
+    }))
+  }
+
   function addStudents(text: string): number {
     const parsed = parseNames(text)
     if (parsed.length === 0) return 0
@@ -196,6 +209,7 @@ export function useSeatingPlan() {
     moveDesk,
     deleteDesk,
     clearDesks,
+    flipView,
     addStudents,
     removeStudent,
     assignStudent,

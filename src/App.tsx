@@ -131,10 +131,12 @@ export default function App() {
         <ClassroomCanvas
           desks={plan.activeClass.desks}
           students={plan.activeClass.students}
+          frontAtTop={plan.activeClass.frontAtTop}
           dropDeskId={dropDeskId}
           draggingStudentId={studentDrag?.studentId ?? null}
           onAddDesk={plan.addDesk}
           onClearDesks={plan.clearDesks}
+          onFlipView={plan.flipView}
           onMoveDesk={plan.moveDesk}
           onDeleteDesk={plan.deleteDesk}
           onStudentDragStart={onStudentDragStart}

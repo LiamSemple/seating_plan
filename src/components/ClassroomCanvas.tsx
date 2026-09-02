@@ -5,10 +5,12 @@ import type { Desk, Student } from '../types'
 type ClassroomCanvasProps = {
   desks: Desk[]
   students: Student[]
+  frontAtTop: boolean
   dropDeskId: string | null
   draggingStudentId: string | null
   onAddDesk: () => void
   onClearDesks: () => void
+  onFlipView: (canvasWidth: number, canvasHeight: number) => void
   onMoveDesk: (deskId: string, x: number, y: number) => void
   onDeleteDesk: (deskId: string) => void
   onStudentDragStart: (
@@ -22,10 +24,12 @@ type ClassroomCanvasProps = {
 export function ClassroomCanvas({
   desks,
   students,
+  frontAtTop,
   dropDeskId,
   draggingStudentId,
   onAddDesk,
   onClearDesks,
+  onFlipView,
   onMoveDesk,
   onDeleteDesk,
   onStudentDragStart,
@@ -111,13 +115,26 @@ export function ClassroomCanvas({
         >
           Clear all desks
         </button>
+        <button
+          type="button"
+          className="btn btn-muted"
+          onClick={() => {
+            const canvas = canvasRef.current
+            if (!canvas) return
+            onFlipView(canvas.clientWidth, canvas.clientHeight)
+          }}
+        >
+          {frontAtTop ? 'View from back of class' : "Students' view"}
+        </button>
       </div>
       <div
         ref={canvasRef}
         className="canvas"
         data-drop="canvas"
       >
-        <div className="front-label">Front of class</div>
+        <div className="front-label">
+          {frontAtTop ? 'Front of class' : 'Back of class'}
+        </div>
         {desks.length === 0 && (
           <p className="canvas-empty">
             Add a desk, then drag students onto it from the list.

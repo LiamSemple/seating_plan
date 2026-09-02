@@ -18,6 +18,7 @@ export type SchoolClass = {
   name: string
   desks: Desk[]
   students: Student[]
+  frontAtTop: boolean
 }
 
 export type AppState = {

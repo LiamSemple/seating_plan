@@ -8,6 +8,7 @@ function createClass(name: string): SchoolClass {
     name,
     desks: [],
     students: [],
+    frontAtTop: false,
   }
 }
 
@@ -29,7 +30,10 @@ export function loadState(): AppState {
     }
     const activeExists = parsed.classes.some((c) => c.id === parsed.activeClassId)
     return {
-      classes: parsed.classes,
+      classes: parsed.classes.map((cls) => ({
+        ...cls,
+        frontAtTop: cls.frontAtTop === true,
+      })),
       activeClassId: activeExists ? parsed.activeClassId : parsed.classes[0].id,
     }
   } catch {

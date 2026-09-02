@@ -101,12 +101,41 @@ export function useSeatingPlan() {
   }
 
   function moveDesk(deskId: string, x: number, y: number) {
+    moveDesks([{ id: deskId, x, y }])
+  }
+
+  function moveDesks(updates: { id: string; x: number; y: number }[]) {
+    if (updates.length === 0) return
+    const byId = new Map(updates.map((update) => [update.id, update]))
     updateActive((cls) => ({
       ...cls,
-      desks: cls.desks.map((desk) =>
-        desk.id === deskId ? { ...desk, x, y } : desk,
-      ),
+      desks: cls.desks.map((desk) => {
+        const update = byId.get(desk.id)
+        return update ? { ...desk, x: update.x, y: update.y } : desk
+      }),
     }))
+  }
+
+  function addEmptyDesks(
+    desks: { x: number; y: number; width: number; height: number }[],
+  ): string[] {
+    const created: string[] = []
+    updateActive((cls) => {
+      const copies = desks.map((desk) => {
+        const id = crypto.randomUUID()
+        created.push(id)
+        return {
+          id,
+          x: desk.x,
+          y: desk.y,
+          width: desk.width,
+          height: desk.height,
+          studentId: null,
+        }
+      })
+      return { ...cls, desks: [...cls.desks, ...copies] }
+    })
+    return created
   }
 
   function deleteDesk(deskId: string) {
@@ -207,6 +236,8 @@ export function useSeatingPlan() {
     deleteClass,
     addDesk,
     moveDesk,
+    moveDesks,
+    addEmptyDesks,
     deleteDesk,
     clearDesks,
     flipView,

@@ -137,7 +137,8 @@ export default function App() {
           onAddDesk={plan.addDesk}
           onClearDesks={plan.clearDesks}
           onFlipView={plan.flipView}
-          onMoveDesk={plan.moveDesk}
+          onMoveDesks={plan.moveDesks}
+          onAddEmptyDesks={plan.addEmptyDesks}
           onDeleteDesk={plan.deleteDesk}
           onStudentDragStart={onStudentDragStart}
         />

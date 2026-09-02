@@ -259,6 +259,19 @@ textarea {
   opacity: 0.95;
 }
 
+.desk-selected {
+  outline: 3px solid #2f5a45;
+  outline-offset: 2px;
+}
+
+.marquee {
+  position: absolute;
+  z-index: 8;
+  pointer-events: none;
+  border: 1px dashed #2f5a45;
+  background: rgba(47, 90, 69, 0.12);
+}
+
 .desk-delete {
   position: absolute;
   top: 4px;

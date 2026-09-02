@@ -11,7 +11,10 @@ type ClassroomCanvasProps = {
   onAddDesk: () => void
   onClearDesks: () => void
   onFlipView: (canvasWidth: number, canvasHeight: number) => void
-  onMoveDesk: (deskId: string, x: number, y: number) => void
+  onMoveDesks: (updates: { id: string; x: number; y: number }[]) => void
+  onAddEmptyDesks: (
+    desks: { x: number; y: number; width: number; height: number }[],
+  ) => string[]
   onDeleteDesk: (deskId: string) => void
   onStudentDragStart: (
     studentId: string,
@@ -19,6 +22,41 @@ type ClassroomCanvasProps = {
     clientX: number,
     clientY: number,
   ) => void
+}
+
+type Marquee = { x1: number; y1: number; x2: number; y2: number }
+
+function canvasPoint(
+  clientX: number,
+  clientY: number,
+  canvas: HTMLDivElement,
+): { x: number; y: number } {
+  const rect = canvas.getBoundingClientRect()
+  return {
+    x: clientX - rect.left + canvas.scrollLeft,
+    y: clientY - rect.top + canvas.scrollTop,
+  }
+}
+
+function rectsOverlap(
+  a: { x: number; y: number; w: number; h: number },
+  b: { x: number; y: number; w: number; h: number },
+): boolean {
+  return a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y
+}
+
+function marqueeBox(marquee: Marquee): {
+  x: number
+  y: number
+  w: number
+  h: number
+} {
+  return {
+    x: Math.min(marquee.x1, marquee.x2),
+    y: Math.min(marquee.y1, marquee.y2),
+    w: Math.abs(marquee.x2 - marquee.x1),
+    h: Math.abs(marquee.y2 - marquee.y1),
+  }
 }
 
 export function ClassroomCanvas({
@@ -30,57 +68,85 @@ export function ClassroomCanvas({
   onAddDesk,
   onClearDesks,
   onFlipView,
-  onMoveDesk,
+  onMoveDesks,
+  onAddEmptyDesks,
   onDeleteDesk,
   onStudentDragStart,
 }: ClassroomCanvasProps) {
   const canvasRef = useRef<HTMLDivElement>(null)
   const desksRef = useRef(desks)
-  const onMoveDeskRef = useRef(onMoveDesk)
+  const onMoveDesksRef = useRef(onMoveDesks)
+  const onAddEmptyDesksRef = useRef(onAddEmptyDesks)
+  const selectedIdsRef = useRef<string[]>([])
+  const clipboardRef = useRef<
+    { x: number; y: number; width: number; height: number }[]
+  >([])
+  const pasteCountRef = useRef(0)
+
+  const [selectedIds, setSelectedIds] = useState<string[]>([])
+  const [draggingDeskIds, setDraggingDeskIds] = useState<string[]>([])
+  const [marquee, setMarquee] = useState<Marquee | null>(null)
+  const marqueeRef = useRef<Marquee | null>(null)
+  const selecting = marquee !== null
+  const visibleSelectedIds = selectedIds.filter((id) =>
+    desks.some((desk) => desk.id === id),
+  )
 
   useEffect(() => {
     desksRef.current = desks
-    onMoveDeskRef.current = onMoveDesk
+    onMoveDesksRef.current = onMoveDesks
+    onAddEmptyDesksRef.current = onAddEmptyDesks
+    selectedIdsRef.current = visibleSelectedIds
   })
+
   const deskDragRef = useRef<{
-    id: string
-    grabX: number
-    grabY: number
+    ids: string[]
+    startX: number
+    startY: number
+    origins: { id: string; x: number; y: number }[]
   } | null>(null)
-  const [draggingDeskId, setDraggingDeskId] = useState<string | null>(null)
 
   useEffect(() => {
-    if (!draggingDeskId) return
+    if (draggingDeskIds.length === 0) return
 
     function onMove(e: PointerEvent) {
       const drag = deskDragRef.current
       const canvas = canvasRef.current
       if (!drag || !canvas) return
-      const rect = canvas.getBoundingClientRect()
-      const desk = desksRef.current.find((item) => item.id === drag.id)
-      if (!desk) return
-      const maxX = Math.max(0, canvas.clientWidth - desk.width)
-      const maxY = Math.max(0, canvas.clientHeight - desk.height)
-      const x = Math.max(
-        0,
-        Math.min(
-          e.clientX - rect.left + canvas.scrollLeft - drag.grabX,
-          maxX,
-        ),
+      const point = canvasPoint(e.clientX, e.clientY, canvas)
+      const rawDx = point.x - drag.startX
+      const rawDy = point.y - drag.startY
+      const moving = drag.origins
+        .map((origin) => {
+          const desk = desksRef.current.find((item) => item.id === origin.id)
+          return desk ? { origin, desk } : null
+        })
+        .filter((item): item is { origin: (typeof drag.origins)[0]; desk: Desk } =>
+          item !== null,
+        )
+
+      let dx = rawDx
+      let dy = rawDy
+      for (const { origin, desk } of moving) {
+        dx = Math.max(-origin.x, Math.min(dx, canvas.clientWidth - desk.width - origin.x))
+        dy = Math.max(
+          -origin.y,
+          Math.min(dy, canvas.clientHeight - desk.height - origin.y),
+        )
+      }
+
+      onMoveDesksRef.current(
+        moving.map(({ origin }) => ({
+          id: origin.id,
+          x: origin.x + dx,
+          y: origin.y + dy,
+        })),
       )
-      const y = Math.max(
-        0,
-        Math.min(
-          e.clientY - rect.top + canvas.scrollTop - drag.grabY,
-          maxY,
-        ),
-      )
-      onMoveDeskRef.current(drag.id, x, y)
     }
 
     function onUp() {
       deskDragRef.current = null
-      setDraggingDeskId(null)
+      setDraggingDeskIds([])
     }
 
     window.addEventListener('pointermove', onMove)
@@ -89,9 +155,113 @@ export function ClassroomCanvas({
       window.removeEventListener('pointermove', onMove)
       window.removeEventListener('pointerup', onUp)
     }
-  }, [draggingDeskId])
+  }, [draggingDeskIds])
+
+  useEffect(() => {
+    if (!selecting) return
+
+    function onMove(e: PointerEvent) {
+      const canvas = canvasRef.current
+      const start = marqueeRef.current
+      if (!canvas || !start) return
+      const point = canvasPoint(e.clientX, e.clientY, canvas)
+      const next = { ...start, x2: point.x, y2: point.y }
+      marqueeRef.current = next
+      setMarquee(next)
+      const box = marqueeBox(next)
+      setSelectedIds(
+        desksRef.current
+          .filter((desk) =>
+            rectsOverlap(box, {
+              x: desk.x,
+              y: desk.y,
+              w: desk.width,
+              h: desk.height,
+            }),
+          )
+          .map((desk) => desk.id),
+      )
+    }
+
+    function onUp() {
+      const box = marqueeRef.current ? marqueeBox(marqueeRef.current) : null
+      if (box && box.w < 4 && box.h < 4) {
+        setSelectedIds([])
+      }
+      marqueeRef.current = null
+      setMarquee(null)
+    }
+
+    window.addEventListener('pointermove', onMove)
+    window.addEventListener('pointerup', onUp)
+    return () => {
+      window.removeEventListener('pointermove', onMove)
+      window.removeEventListener('pointerup', onUp)
+    }
+  }, [selecting])
+
+  useEffect(() => {
+    function typingInField() {
+      const target = document.activeElement
+      return (
+        target instanceof HTMLInputElement ||
+        target instanceof HTMLTextAreaElement
+      )
+    }
+
+    function onKeyDown(e: KeyboardEvent) {
+      if (typingInField()) return
+      const copy = (e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'c'
+      const paste = (e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'v'
+      if (!copy && !paste) return
+
+      if (copy) {
+        const selected = desksRef.current.filter((desk) =>
+          selectedIdsRef.current.includes(desk.id),
+        )
+        if (selected.length === 0) return
+        e.preventDefault()
+        clipboardRef.current = selected.map((desk) => ({
+          x: desk.x,
+          y: desk.y,
+          width: desk.width,
+          height: desk.height,
+        }))
+        pasteCountRef.current = 0
+        return
+      }
+
+      const canvas = canvasRef.current
+      if (!canvas || clipboardRef.current.length === 0) return
+      e.preventDefault()
+      pasteCountRef.current += 1
+      const offset = 28 * pasteCountRef.current
+      const created = onAddEmptyDesksRef.current(
+        clipboardRef.current.map((desk) => ({
+          x: Math.max(
+            0,
+            Math.min(desk.x + offset, Math.max(0, canvas.clientWidth - desk.width)),
+          ),
+          y: Math.max(
+            0,
+            Math.min(
+              desk.y + offset,
+              Math.max(0, canvas.clientHeight - desk.height),
+            ),
+          ),
+          width: desk.width,
+          height: desk.height,
+        })),
+      )
+      setSelectedIds(created)
+    }
+
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  }, [])
 
   const studentById = new Map(students.map((student) => [student.id, student]))
+  const box = marquee ? marqueeBox(marquee) : null
 
   return (
     <section className="canvas-panel">
@@ -131,6 +301,17 @@ export function ClassroomCanvas({
         ref={canvasRef}
         className="canvas"
         data-drop="canvas"
+        onPointerDown={(e) => {
+          if (e.button !== 0) return
+          if ((e.target as HTMLElement).closest('[data-desk-id]')) return
+          const canvas = canvasRef.current
+          if (!canvas) return
+          e.preventDefault()
+          const point = canvasPoint(e.clientX, e.clientY, canvas)
+          const next = { x1: point.x, y1: point.y, x2: point.x, y2: point.y }
+          marqueeRef.current = next
+          setMarquee(next)
+        }}
       >
         <div className="front-label">
           {frontAtTop ? 'Front of class' : 'Back of class'}
@@ -140,11 +321,18 @@ export function ClassroomCanvas({
             Add a desk, then drag students onto it from the list.
           </p>
         )}
+        {box && box.w + box.h > 0 && (
+          <div
+            className="marquee"
+            style={{ left: box.x, top: box.y, width: box.w, height: box.h }}
+          />
+        )}
         {desks.map((desk) => {
           const seated =
             desk.studentId && desk.studentId !== draggingStudentId
               ? studentById.get(desk.studentId)
               : undefined
+          const selected = visibleSelectedIds.includes(desk.id)
           return (
             <div
               key={desk.id}
@@ -152,7 +340,8 @@ export function ClassroomCanvas({
                 'desk',
                 seated ? 'desk-occupied' : '',
                 dropDeskId === desk.id ? 'desk-drop' : '',
-                draggingDeskId === desk.id ? 'desk-dragging' : '',
+                draggingDeskIds.includes(desk.id) ? 'desk-dragging' : '',
+                selected ? 'desk-selected' : '',
               ]
                 .filter(Boolean)
                 .join(' ')}
@@ -168,14 +357,28 @@ export function ClassroomCanvas({
                 const canvas = canvasRef.current
                 if (!canvas) return
                 e.preventDefault()
-                const rect = canvas.getBoundingClientRect()
-                deskDragRef.current = {
-                  id: desk.id,
-                  grabX:
-                    e.clientX - rect.left + canvas.scrollLeft - desk.x,
-                  grabY: e.clientY - rect.top + canvas.scrollTop - desk.y,
+                e.stopPropagation()
+                const point = canvasPoint(e.clientX, e.clientY, canvas)
+                const ids = visibleSelectedIds.includes(desk.id)
+                  ? visibleSelectedIds
+                  : [desk.id]
+                if (!visibleSelectedIds.includes(desk.id)) {
+                  setSelectedIds([desk.id])
                 }
-                setDraggingDeskId(desk.id)
+                const moving = desksRef.current.filter((item) =>
+                  ids.includes(item.id),
+                )
+                deskDragRef.current = {
+                  ids,
+                  startX: point.x,
+                  startY: point.y,
+                  origins: moving.map((item) => ({
+                    id: item.id,
+                    x: item.x,
+                    y: item.y,
+                  })),
+                }
+                setDraggingDeskIds(ids)
               }}
             >
               <button

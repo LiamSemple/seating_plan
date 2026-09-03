@@ -435,7 +435,7 @@ textarea {
 @media print {
   @page {
     size: landscape;
-    margin: 10mm;
+    margin: 8mm;
   }
 
   html,
@@ -444,27 +444,27 @@ textarea {
   .app {
     background: #fff;
     max-width: none;
+    width: 100%;
+    height: 100%;
     min-height: 0;
     padding: 0;
     margin: 0;
     color: #000;
+    overflow: hidden;
   }
 
   .no-print,
   .drag-ghost,
-  .desk-empty-label {
+  .desk-empty-label,
+  .header {
     display: none !important;
   }
 
   .print-class-name {
     display: block;
-    margin: 0 0 8px;
-    font-size: 18pt;
+    margin: 0 0 6px;
+    font-size: 16pt;
     font-weight: 700;
-  }
-
-  .header h1 {
-    display: none;
   }
 
   .workspace {
@@ -474,6 +474,14 @@ textarea {
     border-radius: 0;
     padding: 0;
     min-height: 0;
+    height: 100%;
+    overflow: hidden;
+  }
+
+  .print-sheet {
+    transform: scale(var(--print-scale, 1));
+    transform-origin: top left;
+    width: max-content;
   }
 
   .canvas-panel,
@@ -482,11 +490,13 @@ textarea {
   }
 
   .canvas {
-    overflow: visible;
+    width: var(--print-room-w, 100%) !important;
+    height: var(--print-room-h, auto) !important;
+    min-height: 0 !important;
+    overflow: hidden;
     border: 1px solid #000;
     border-radius: 0;
     background: #fff;
-    break-inside: avoid;
   }
 
   .front-label {

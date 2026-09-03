@@ -110,6 +110,34 @@ export default function App() {
       )
     : undefined
 
+  function handlePrint() {
+    const desks = plan.activeClass.desks
+    const roomW = Math.max(
+      400,
+      ...desks.map((desk) => desk.x + desk.width + 24),
+    )
+    const roomH = Math.max(
+      280,
+      ...desks.map((desk) => desk.y + desk.height + 24),
+    )
+    const titleH = 44
+    const availW = 1040
+    const availH = 680
+    const scale = Math.min(availW / roomW, (availH - titleH) / roomH)
+    const root = document.documentElement
+    root.style.setProperty('--print-scale', String(scale))
+    root.style.setProperty('--print-room-w', `${roomW}px`)
+    root.style.setProperty('--print-room-h', `${roomH}px`)
+    const reset = () => {
+      root.style.removeProperty('--print-scale')
+      root.style.removeProperty('--print-room-w')
+      root.style.removeProperty('--print-room-h')
+      window.removeEventListener('afterprint', reset)
+    }
+    window.addEventListener('afterprint', reset)
+    window.print()
+  }
+
   return (
     <div className={studentDrag ? 'app dragging' : 'app'}>
       <header className="header">
@@ -119,7 +147,6 @@ export default function App() {
             Saved automatically on this computer. Use Save file to share
             every class with someone else.
           </p>
-          <h2 className="print-class-name">{plan.activeClass.name}</h2>
         </div>
         <div className="header-actions no-print">
           <button
@@ -139,7 +166,7 @@ export default function App() {
           <button
             type="button"
             className="btn btn-muted"
-            onClick={() => window.print()}
+            onClick={handlePrint}
           >
             Print
           </button>
@@ -189,6 +216,7 @@ export default function App() {
         <ClassroomCanvas
           desks={plan.activeClass.desks}
           students={plan.activeClass.students}
+          className={plan.activeClass.name}
           frontAtTop={plan.activeClass.frontAtTop}
           dropDeskId={dropDeskId}
           draggingStudentId={studentDrag?.studentId ?? null}

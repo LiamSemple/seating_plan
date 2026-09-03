@@ -5,6 +5,7 @@ import type { Desk, Student } from '../types'
 type ClassroomCanvasProps = {
   desks: Desk[]
   students: Student[]
+  className: string
   frontAtTop: boolean
   dropDeskId: string | null
   draggingStudentId: string | null
@@ -66,6 +67,7 @@ function marqueeBox(marquee: Marquee): {
 export function ClassroomCanvas({
   desks,
   students,
+  className,
   frontAtTop,
   dropDeskId,
   draggingStudentId,
@@ -303,7 +305,8 @@ export function ClassroomCanvas({
   )
 
   return (
-    <section className="canvas-panel">
+    <section className="canvas-panel print-sheet">
+      <h2 className="print-class-name">{className}</h2>
       <div className="canvas-toolbar no-print">
         <button type="button" className="btn" onClick={onAddDesk}>
           Add desk

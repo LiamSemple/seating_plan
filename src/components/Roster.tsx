@@ -55,7 +55,9 @@ export function Roster({
 
   return (
     <aside
-      className={dropActive ? 'roster roster-drop' : 'roster'}
+      className={
+        dropActive ? 'roster roster-drop no-print' : 'roster no-print'
+      }
       data-drop="roster"
     >
       <h2>Class list</h2>

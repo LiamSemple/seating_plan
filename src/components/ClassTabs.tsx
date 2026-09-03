@@ -48,7 +48,7 @@ export function ClassTabs({
   }
 
   return (
-    <div className="tabs">
+    <div className="tabs no-print">
       {classes.map((cls) => {
         const active = cls.id === activeClassId
         return (

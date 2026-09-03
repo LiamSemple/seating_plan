@@ -297,10 +297,14 @@ export function ClassroomCanvas({
 
   const studentById = new Map(students.map((student) => [student.id, student]))
   const box = marquee ? marqueeBox(marquee) : null
+  const roomHeight = Math.max(
+    460,
+    ...desks.map((desk) => desk.y + desk.height + 16),
+  )
 
   return (
     <section className="canvas-panel">
-      <div className="canvas-toolbar">
+      <div className="canvas-toolbar no-print">
         <button type="button" className="btn" onClick={onAddDesk}>
           Add desk
         </button>
@@ -346,6 +350,7 @@ export function ClassroomCanvas({
         ref={canvasRef}
         className="canvas"
         data-drop="canvas"
+        style={{ minHeight: roomHeight }}
         onPointerDown={(e) => {
           if (e.button !== 0) return
           if ((e.target as HTMLElement).closest('[data-desk-id]')) return
@@ -362,7 +367,7 @@ export function ClassroomCanvas({
           {frontAtTop ? 'Front of class' : 'Back of class'}
         </div>
         {desks.length === 0 && (
-          <p className="canvas-empty">
+          <p className="canvas-empty no-print">
             Add a desk, then drag students onto it from the list.
           </p>
         )}
@@ -429,7 +434,7 @@ export function ClassroomCanvas({
             >
               <button
                 type="button"
-                className="desk-delete"
+                className="desk-delete no-print"
                 aria-label="Delete desk"
                 title="Delete desk"
                 onPointerDown={(e) => e.stopPropagation()}

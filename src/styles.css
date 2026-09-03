@@ -72,6 +72,10 @@ textarea {
   font-size: 0.9rem;
 }
 
+.print-class-name {
+  display: none;
+}
+
 .tabs {
   display: flex;
   flex-wrap: wrap;
@@ -425,5 +429,91 @@ textarea {
 
   .roster-list {
     max-height: 180px;
+  }
+}
+
+@media print {
+  @page {
+    size: landscape;
+    margin: 10mm;
+  }
+
+  html,
+  body,
+  #root,
+  .app {
+    background: #fff;
+    max-width: none;
+    min-height: 0;
+    padding: 0;
+    margin: 0;
+    color: #000;
+  }
+
+  .no-print,
+  .drag-ghost,
+  .desk-empty-label {
+    display: none !important;
+  }
+
+  .print-class-name {
+    display: block;
+    margin: 0 0 8px;
+    font-size: 18pt;
+    font-weight: 700;
+  }
+
+  .header h1 {
+    display: none;
+  }
+
+  .workspace {
+    display: block;
+    background: #fff;
+    border: none;
+    border-radius: 0;
+    padding: 0;
+    min-height: 0;
+  }
+
+  .canvas-panel,
+  .canvas {
+    min-height: 0;
+  }
+
+  .canvas {
+    overflow: visible;
+    border: 1px solid #000;
+    border-radius: 0;
+    background: #fff;
+    break-inside: avoid;
+  }
+
+  .front-label {
+    position: static;
+    background: #fff;
+    color: #000;
+    border-bottom: 1px solid #000;
+    letter-spacing: 0.06em;
+  }
+
+  .desk,
+  .desk-occupied,
+  .desk-selected,
+  .desk-drop,
+  .desk-dragging {
+    background: #fff;
+    border: 2px solid #000;
+    box-shadow: none;
+    outline: none;
+    border-radius: 0;
+    color: #000;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  .desk-student {
+    color: #000;
+    font-weight: 600;
   }
 }

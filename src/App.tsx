@@ -115,12 +115,13 @@ export default function App() {
       <header className="header">
         <div>
           <h1>Seating Plan</h1>
-          <p className="subtitle">
+          <p className="subtitle no-print">
             Saved automatically on this computer. Use Save file to share
             every class with someone else.
           </p>
+          <h2 className="print-class-name">{plan.activeClass.name}</h2>
         </div>
-        <div className="header-actions">
+        <div className="header-actions no-print">
           <button
             type="button"
             className="btn"
@@ -134,6 +135,13 @@ export default function App() {
             onClick={() => fileInputRef.current?.click()}
           >
             Open file
+          </button>
+          <button
+            type="button"
+            className="btn btn-muted"
+            onClick={() => window.print()}
+          >
+            Print
           </button>
           <input
             ref={fileInputRef}

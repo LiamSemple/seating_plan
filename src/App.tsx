@@ -19,6 +19,7 @@ export default function App() {
   const [dropRoster, setDropRoster] = useState(false)
   const dragRef = useRef<StudentDrag | null>(null)
   const planRef = useRef(plan)
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   const dragging = studentDrag !== null
 
@@ -115,8 +116,57 @@ export default function App() {
         <div>
           <h1>Seating Plan</h1>
           <p className="subtitle">
-            Saved automatically on this computer in this browser.
+            Saved automatically on this computer. Use Save file to share
+            every class with someone else.
           </p>
+        </div>
+        <div className="header-actions">
+          <button
+            type="button"
+            className="btn"
+            onClick={() => plan.exportFile()}
+          >
+            Save file
+          </button>
+          <button
+            type="button"
+            className="btn btn-muted"
+            onClick={() => fileInputRef.current?.click()}
+          >
+            Open file
+          </button>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".json,application/json"
+            hidden
+            onChange={(e) => {
+              const file = e.target.files?.[0]
+              e.target.value = ''
+              if (!file) return
+              const hasWork = plan.classes.some(
+                (cls) =>
+                  cls.students.length > 0 ||
+                  cls.desks.length > 0 ||
+                  plan.classes.length > 1,
+              )
+              if (
+                hasWork &&
+                !window.confirm(
+                  'Replace all classes on this computer with this file?',
+                )
+              ) {
+                return
+              }
+              void file.text().then((text) => {
+                if (!plan.importFile(text)) {
+                  window.alert(
+                    'That file is not a seating plan, or it could not be read.',
+                  )
+                }
+              })
+            }}
+          />
         </div>
       </header>
       <ClassTabs

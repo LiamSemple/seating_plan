@@ -45,4 +45,56 @@ export function saveState(state: AppState): void {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(state))
 }
 
+type FilePayload = {
+  version: 1
+  classes: AppState['classes']
+  activeClassId: string
+}
+
+function normalizeState(parsed: {
+  classes?: SchoolClass[]
+  activeClassId?: string
+}): AppState | null {
+  if (!parsed || !Array.isArray(parsed.classes) || parsed.classes.length === 0) {
+    return null
+  }
+  const classes = parsed.classes.map((cls) => ({
+    ...cls,
+    frontAtTop: cls.frontAtTop === true,
+  }))
+  const activeExists = classes.some((cls) => cls.id === parsed.activeClassId)
+  return {
+    classes,
+    activeClassId: activeExists ? parsed.activeClassId! : classes[0].id,
+  }
+}
+
+export function parseImportedFile(text: string): AppState | null {
+  try {
+    const parsed = JSON.parse(text) as FilePayload | AppState
+    return normalizeState(parsed)
+  } catch {
+    return null
+  }
+}
+
+export function buildExportFile(state: AppState): string {
+  const payload: FilePayload = {
+    version: 1,
+    classes: state.classes,
+    activeClassId: state.activeClassId,
+  }
+  return JSON.stringify(payload, null, 2)
+}
+
+export function downloadExportFile(state: AppState): void {
+  const blob = new Blob([buildExportFile(state)], { type: 'application/json' })
+  const url = URL.createObjectURL(blob)
+  const link = document.createElement('a')
+  link.href = url
+  link.download = 'seating-plan.json'
+  link.click()
+  URL.revokeObjectURL(url)
+}
+
 export { createClass }

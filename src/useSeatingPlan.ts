@@ -1,6 +1,13 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { parseNames } from './parseNames'
-import { createClass, createInitialState, loadState, saveState } from './storage'
+import {
+  createClass,
+  createInitialState,
+  downloadExportFile,
+  loadState,
+  parseImportedFile,
+  saveState,
+} from './storage'
 import { DESK_HEIGHT, DESK_WIDTH, type AppState, type SchoolClass } from './types'
 
 function nextClassName(classes: SchoolClass[]): string {
@@ -264,6 +271,18 @@ export function useSeatingPlan() {
     }))
   }
 
+  function exportFile() {
+    downloadExportFile(stateRef.current)
+  }
+
+  function importFile(text: string): boolean {
+    const next = parseImportedFile(text)
+    if (!next) return false
+    snapshot()
+    setState(next)
+    return true
+  }
+
   return {
     classes: state.classes,
     activeClassId: state.activeClassId,
@@ -286,5 +305,7 @@ export function useSeatingPlan() {
     removeStudent,
     assignStudent,
     unseatStudent,
+    exportFile,
+    importFile,
   }
 }

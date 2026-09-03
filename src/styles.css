@@ -45,11 +45,25 @@ textarea {
   user-select: none;
 }
 
+.header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
 .header h1 {
   margin: 0;
   font-size: 1.6rem;
   letter-spacing: 0.01em;
   color: #1f3d32;
+}
+
+.header-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
 }
 
 .subtitle {

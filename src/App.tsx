@@ -119,22 +119,15 @@ export default function App() {
     const roomH = Math.max(
       280,
       ...desks.map((desk) => desk.y + desk.height + 24),
-    )
+    ) + 48
     const titleH = 44
     const availW = 1040
     const availH = 680
-    const scale = Math.min(availW / roomW, (availH - titleH) / roomH)
+    const scale = Math.min(1, availW / roomW, (availH - titleH) / roomH)
     const root = document.documentElement
     root.style.setProperty('--print-scale', String(scale))
     root.style.setProperty('--print-room-w', `${roomW}px`)
     root.style.setProperty('--print-room-h', `${roomH}px`)
-    const reset = () => {
-      root.style.removeProperty('--print-scale')
-      root.style.removeProperty('--print-room-w')
-      root.style.removeProperty('--print-room-h')
-      window.removeEventListener('afterprint', reset)
-    }
-    window.addEventListener('afterprint', reset)
     window.print()
   }
 

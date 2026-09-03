@@ -120,9 +120,10 @@ export default function App() {
       280,
       ...desks.map((desk) => desk.y + desk.height + 24),
     ) + 48
-    const titleH = 44
-    const availW = 1150
-    const availH = 780
+    const titleH = 40
+    const pxPerMm = 96 / 25.4
+    const availW = 281 * pxPerMm
+    const availH = 194 * pxPerMm
     const scale = Math.min(availW / roomW, (availH - titleH) / roomH)
     const root = document.documentElement
     root.style.setProperty('--print-scale', String(scale))

@@ -186,6 +186,7 @@ export default function App() {
           draggingStudentId={studentDrag?.studentId ?? null}
           onAddDesk={plan.addDesk}
           onClearDesks={plan.clearDesks}
+          onAssignRandomly={plan.assignRandomly}
           onFlipView={plan.flipView}
           onMoveDesks={plan.moveDesks}
           onAddEmptyDesks={plan.addEmptyDesks}

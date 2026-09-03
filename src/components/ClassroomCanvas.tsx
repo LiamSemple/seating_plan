@@ -10,6 +10,7 @@ type ClassroomCanvasProps = {
   draggingStudentId: string | null
   onAddDesk: () => void
   onClearDesks: () => void
+  onAssignRandomly: () => void
   onFlipView: (canvasWidth: number, canvasHeight: number) => void
   onMoveDesks: (updates: { id: string; x: number; y: number }[]) => void
   onAddEmptyDesks: (
@@ -70,6 +71,7 @@ export function ClassroomCanvas({
   draggingStudentId,
   onAddDesk,
   onClearDesks,
+  onAssignRandomly,
   onFlipView,
   onMoveDesks,
   onAddEmptyDesks,
@@ -306,10 +308,10 @@ export function ClassroomCanvas({
           type="button"
           className="btn btn-muted"
           onClick={() => {
-            if (desks.length === 0) return
+            if (!desks.some((desk) => desk.studentId)) return
             if (
               window.confirm(
-                'Remove all desks in this class? Students will go back to the list.',
+                'Take every name off the desks? The desks will stay.',
               )
             ) {
               onClearDesks()
@@ -317,6 +319,16 @@ export function ClassroomCanvas({
           }}
         >
           Clear all desks
+        </button>
+        <button
+          type="button"
+          className="btn btn-muted"
+          onClick={() => {
+            if (desks.length === 0 || students.length === 0) return
+            onAssignRandomly()
+          }}
+        >
+          Seat randomly
         </button>
         <button
           type="button"

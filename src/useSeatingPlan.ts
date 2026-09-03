@@ -186,7 +186,30 @@ export function useSeatingPlan() {
 
   function clearDesks() {
     snapshot()
-    updateActive((cls) => ({ ...cls, desks: [] }))
+    updateActive((cls) => ({
+      ...cls,
+      desks: cls.desks.map((desk) => ({ ...desk, studentId: null })),
+    }))
+  }
+
+  function assignRandomly() {
+    snapshot()
+    updateActive((cls) => {
+      const order = cls.students.map((student) => student.id)
+      for (let i = order.length - 1; i > 0; i -= 1) {
+        const j = Math.floor(Math.random() * (i + 1))
+        const current = order[i]
+        order[i] = order[j]
+        order[j] = current
+      }
+      return {
+        ...cls,
+        desks: cls.desks.map((desk, index) => ({
+          ...desk,
+          studentId: order[index] ?? null,
+        })),
+      }
+    })
   }
 
   function flipView(canvasWidth: number, canvasHeight: number) {
@@ -298,6 +321,7 @@ export function useSeatingPlan() {
     deleteDesk,
     deleteDesks,
     clearDesks,
+    assignRandomly,
     beginUndo,
     undo,
     flipView,

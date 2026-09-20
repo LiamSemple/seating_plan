@@ -19,6 +19,8 @@ export type SchoolClass = {
   desks: Desk[]
   students: Student[]
   frontAtTop: boolean
+  roomWidth: number
+  roomHeight: number
 }
 
 export type AppState = {

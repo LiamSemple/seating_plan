@@ -8,6 +8,7 @@ import {
   parseImportedFile,
   saveState,
 } from './storage'
+import { withRoomSize } from './room'
 import { DESK_HEIGHT, DESK_WIDTH, type AppState, type SchoolClass } from './types'
 
 function nextClassName(classes: SchoolClass[]): string {
@@ -54,11 +55,11 @@ export function useSeatingPlan() {
   }
 
   const activeClass = useMemo((): SchoolClass => {
-    return (
+    const found =
       state.classes.find((cls) => cls.id === state.activeClassId) ??
       state.classes[0] ??
       createClass('Class 1')
-    )
+    return withRoomSize(found)
   }, [state])
 
   function updateActive(updater: (cls: SchoolClass) => SchoolClass) {
@@ -113,15 +114,16 @@ export function useSeatingPlan() {
   function addDesk() {
     snapshot()
     updateActive((cls) => {
+      const room = withRoomSize(cls)
       const pos = nextDeskPosition(cls.desks)
       return {
-        ...cls,
+        ...room,
         desks: [
           ...cls.desks,
           {
             id: crypto.randomUUID(),
-            x: pos.x,
-            y: pos.y,
+            x: Math.max(0, Math.min(pos.x, room.roomWidth - DESK_WIDTH)),
+            y: Math.max(48, Math.min(pos.y, room.roomHeight - DESK_HEIGHT)),
             width: DESK_WIDTH,
             height: DESK_HEIGHT,
             studentId: null,
@@ -212,18 +214,20 @@ export function useSeatingPlan() {
     })
   }
 
-  function flipView(canvasWidth: number, canvasHeight: number) {
-    if (canvasWidth <= 0 || canvasHeight <= 0) return
+  function flipView() {
     snapshot()
-    updateActive((cls) => ({
-      ...cls,
-      frontAtTop: !cls.frontAtTop,
-      desks: cls.desks.map((desk) => ({
-        ...desk,
-        x: Math.max(0, canvasWidth - desk.x - desk.width),
-        y: Math.max(0, canvasHeight - desk.y - desk.height),
-      })),
-    }))
+    updateActive((cls) => {
+      const room = withRoomSize(cls)
+      return {
+        ...room,
+        frontAtTop: !room.frontAtTop,
+        desks: room.desks.map((desk) => ({
+          ...desk,
+          x: Math.max(0, room.roomWidth - desk.x - desk.width),
+          y: Math.max(0, room.roomHeight - desk.y - desk.height),
+        })),
+      }
+    })
   }
 
   function addStudents(text: string): number {

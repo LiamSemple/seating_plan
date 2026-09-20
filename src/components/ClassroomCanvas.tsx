@@ -7,12 +7,14 @@ type ClassroomCanvasProps = {
   students: Student[]
   className: string
   frontAtTop: boolean
+  roomWidth: number
+  roomHeight: number
   dropDeskId: string | null
   draggingStudentId: string | null
   onAddDesk: () => void
   onClearDesks: () => void
   onAssignRandomly: () => void
-  onFlipView: (canvasWidth: number, canvasHeight: number) => void
+  onFlipView: () => void
   onMoveDesks: (updates: { id: string; x: number; y: number }[]) => void
   onAddEmptyDesks: (
     desks: { x: number; y: number; width: number; height: number }[],
@@ -69,6 +71,8 @@ export function ClassroomCanvas({
   students,
   className,
   frontAtTop,
+  roomWidth,
+  roomHeight,
   dropDeskId,
   draggingStudentId,
   onAddDesk,
@@ -91,6 +95,7 @@ export function ClassroomCanvas({
   const onBeginUndoRef = useRef(onBeginUndo)
   const onUndoRef = useRef(onUndo)
   const selectedIdsRef = useRef<string[]>([])
+  const scaleRef = useRef({ sx: 1, sy: 1, roomWidth: 1, roomHeight: 1 })
   const clipboardRef = useRef<
     { x: number; y: number; width: number; height: number }[]
   >([])
@@ -99,11 +104,40 @@ export function ClassroomCanvas({
   const [selectedIds, setSelectedIds] = useState<string[]>([])
   const [draggingDeskIds, setDraggingDeskIds] = useState<string[]>([])
   const [marquee, setMarquee] = useState<Marquee | null>(null)
+  const [view, setView] = useState({ w: 1, h: 1 })
   const marqueeRef = useRef<Marquee | null>(null)
   const selecting = marquee !== null
   const visibleSelectedIds = selectedIds.filter((id) =>
     desks.some((desk) => desk.id === id),
   )
+  const sx = view.w / Math.max(roomWidth, 1)
+  const sy = view.h / Math.max(roomHeight, 1)
+
+  function toRoom(point: { x: number; y: number }) {
+    return { x: point.x / sx, y: point.y / sy }
+  }
+
+  function screenDesk(desk: Desk) {
+    return {
+      x: desk.x * sx,
+      y: desk.y * sy,
+      w: desk.width * sx,
+      h: desk.height * sy,
+    }
+  }
+
+  useEffect(() => {
+    const canvas = canvasRef.current
+    if (!canvas) return
+    const observer = new ResizeObserver(([entry]) => {
+      const box = entry.contentRect
+      if (box.width > 0 && box.height > 0) {
+        setView({ w: box.width, h: box.height })
+      }
+    })
+    observer.observe(canvas)
+    return () => observer.disconnect()
+  }, [])
 
   useEffect(() => {
     desksRef.current = desks
@@ -113,6 +147,7 @@ export function ClassroomCanvas({
     onBeginUndoRef.current = onBeginUndo
     onUndoRef.current = onUndo
     selectedIdsRef.current = visibleSelectedIds
+    scaleRef.current = { sx, sy, roomWidth, roomHeight }
   })
 
   const deskDragRef = useRef<{
@@ -130,7 +165,11 @@ export function ClassroomCanvas({
       const drag = deskDragRef.current
       const canvas = canvasRef.current
       if (!drag || !canvas) return
-      const point = canvasPoint(e.clientX, e.clientY, canvas)
+      const { sx, sy, roomWidth, roomHeight } = scaleRef.current
+      const point = {
+        x: canvasPoint(e.clientX, e.clientY, canvas).x / sx,
+        y: canvasPoint(e.clientX, e.clientY, canvas).y / sy,
+      }
       if (!drag.didSnapshot) {
         drag.didSnapshot = true
         onBeginUndoRef.current()
@@ -149,10 +188,10 @@ export function ClassroomCanvas({
       let dx = rawDx
       let dy = rawDy
       for (const { origin, desk } of moving) {
-        dx = Math.max(-origin.x, Math.min(dx, canvas.clientWidth - desk.width - origin.x))
+        dx = Math.max(-origin.x, Math.min(dx, roomWidth - desk.width - origin.x))
         dy = Math.max(
           -origin.y,
-          Math.min(dy, canvas.clientHeight - desk.height - origin.y),
+          Math.min(dy, roomHeight - desk.height - origin.y),
         )
       }
 
@@ -190,16 +229,18 @@ export function ClassroomCanvas({
       marqueeRef.current = next
       setMarquee(next)
       const box = marqueeBox(next)
+      const { sx, sy } = scaleRef.current
       setSelectedIds(
         desksRef.current
-          .filter((desk) =>
-            rectsOverlap(box, {
-              x: desk.x,
-              y: desk.y,
-              w: desk.width,
-              h: desk.height,
-            }),
-          )
+          .filter((desk) => {
+            const shown = {
+              x: desk.x * sx,
+              y: desk.y * sy,
+              w: desk.width * sx,
+              h: desk.height * sy,
+            }
+            return rectsOverlap(box, shown)
+          })
           .map((desk) => desk.id),
       )
     }
@@ -272,19 +313,17 @@ export function ClassroomCanvas({
       if (!canvas || clipboardRef.current.length === 0) return
       e.preventDefault()
       pasteCountRef.current += 1
+      const { roomWidth, roomHeight } = scaleRef.current
       const offset = 28 * pasteCountRef.current
       const created = onAddEmptyDesksRef.current(
         clipboardRef.current.map((desk) => ({
           x: Math.max(
             0,
-            Math.min(desk.x + offset, Math.max(0, canvas.clientWidth - desk.width)),
+            Math.min(desk.x + offset, Math.max(0, roomWidth - desk.width)),
           ),
           y: Math.max(
             0,
-            Math.min(
-              desk.y + offset,
-              Math.max(0, canvas.clientHeight - desk.height),
-            ),
+            Math.min(desk.y + offset, Math.max(0, roomHeight - desk.height)),
           ),
           width: desk.width,
           height: desk.height,
@@ -299,11 +338,6 @@ export function ClassroomCanvas({
 
   const studentById = new Map(students.map((student) => [student.id, student]))
   const box = marquee ? marqueeBox(marquee) : null
-  const roomHeight = Math.max(
-    460,
-    ...desks.map((desk) => desk.y + desk.height + 16),
-  )
-
   return (
     <section className="canvas-panel print-sheet">
       <h2 className="print-class-name">{className}</h2>
@@ -340,11 +374,7 @@ export function ClassroomCanvas({
         <button
           type="button"
           className="btn btn-muted"
-          onClick={() => {
-            const canvas = canvasRef.current
-            if (!canvas) return
-            onFlipView(canvas.clientWidth, canvas.clientHeight)
-          }}
+          onClick={() => onFlipView()}
         >
           {frontAtTop ? "Teacher's view" : "Students' view"}
         </button>
@@ -353,7 +383,6 @@ export function ClassroomCanvas({
         ref={canvasRef}
         className="canvas"
         data-drop="canvas"
-        style={{ minHeight: roomHeight }}
         onPointerDown={(e) => {
           if (e.button !== 0) return
           if ((e.target as HTMLElement).closest('[data-desk-id]')) return
@@ -400,10 +429,10 @@ export function ClassroomCanvas({
                 .join(' ')}
               data-desk-id={desk.id}
               style={{
-                left: desk.x,
-                top: desk.y,
-                width: desk.width,
-                height: desk.height,
+                left: screenDesk(desk).x,
+                top: screenDesk(desk).y,
+                width: screenDesk(desk).w,
+                height: screenDesk(desk).h,
               }}
               onPointerDown={(e) => {
                 if (e.button !== 0) return
@@ -411,7 +440,7 @@ export function ClassroomCanvas({
                 if (!canvas) return
                 e.preventDefault()
                 e.stopPropagation()
-                const point = canvasPoint(e.clientX, e.clientY, canvas)
+                const point = toRoom(canvasPoint(e.clientX, e.clientY, canvas))
                 const ids = visibleSelectedIds.includes(desk.id)
                   ? visibleSelectedIds
                   : [desk.id]

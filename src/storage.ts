@@ -1,3 +1,4 @@
+import { withRoomSize } from './room'
 import type { AppState, SchoolClass } from './types'
 
 const STORAGE_KEY = 'seating-plan-v1'
@@ -9,6 +10,8 @@ function createClass(name: string): SchoolClass {
     desks: [],
     students: [],
     frontAtTop: false,
+    roomWidth: 0,
+    roomHeight: 0,
   }
 }
 
@@ -30,10 +33,14 @@ export function loadState(): AppState {
     }
     const activeExists = parsed.classes.some((c) => c.id === parsed.activeClassId)
     return {
-      classes: parsed.classes.map((cls) => ({
-        ...cls,
-        frontAtTop: cls.frontAtTop === true,
-      })),
+      classes: parsed.classes.map((cls) =>
+        withRoomSize({
+          ...cls,
+          frontAtTop: cls.frontAtTop === true,
+          roomWidth: cls.roomWidth ?? 0,
+          roomHeight: cls.roomHeight ?? 0,
+        }),
+      ),
       activeClassId: activeExists ? parsed.activeClassId : parsed.classes[0].id,
     }
   } catch {
@@ -58,10 +65,14 @@ function normalizeState(parsed: {
   if (!parsed || !Array.isArray(parsed.classes) || parsed.classes.length === 0) {
     return null
   }
-  const classes = parsed.classes.map((cls) => ({
-    ...cls,
-    frontAtTop: cls.frontAtTop === true,
-  }))
+  const classes = parsed.classes.map((cls) =>
+    withRoomSize({
+      ...cls,
+      frontAtTop: cls.frontAtTop === true,
+      roomWidth: cls.roomWidth ?? 0,
+      roomHeight: cls.roomHeight ?? 0,
+    }),
+  )
   const activeExists = classes.some((cls) => cls.id === parsed.activeClassId)
   return {
     classes,

@@ -212,6 +212,8 @@ export default function App() {
           students={plan.activeClass.students}
           className={plan.activeClass.name}
           frontAtTop={plan.activeClass.frontAtTop}
+          roomWidth={plan.activeClass.roomWidth}
+          roomHeight={plan.activeClass.roomHeight}
           dropDeskId={dropDeskId}
           draggingStudentId={studentDrag?.studentId ?? null}
           onAddDesk={plan.addDesk}

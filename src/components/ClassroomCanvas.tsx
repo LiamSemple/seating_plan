@@ -87,6 +87,7 @@ export function ClassroomCanvas({
   onUndo,
   onStudentDragStart,
 }: ClassroomCanvasProps) {
+  const panelRef = useRef<HTMLElement>(null)
   const canvasRef = useRef<HTMLDivElement>(null)
   const desksRef = useRef(desks)
   const onMoveDesksRef = useRef(onMoveDesks)
@@ -105,6 +106,7 @@ export function ClassroomCanvas({
   const [draggingDeskIds, setDraggingDeskIds] = useState<string[]>([])
   const [marquee, setMarquee] = useState<Marquee | null>(null)
   const [view, setView] = useState({ w: 1, h: 1 })
+  const [isFullscreen, setIsFullscreen] = useState(false)
   const marqueeRef = useRef<Marquee | null>(null)
   const selecting = marquee !== null
   const visibleSelectedIds = selectedIds.filter((id) =>
@@ -138,6 +140,28 @@ export function ClassroomCanvas({
     observer.observe(canvas)
     return () => observer.disconnect()
   }, [])
+
+  useEffect(() => {
+    function syncFullscreen() {
+      setIsFullscreen(document.fullscreenElement === panelRef.current)
+    }
+    document.addEventListener('fullscreenchange', syncFullscreen)
+    return () => document.removeEventListener('fullscreenchange', syncFullscreen)
+  }, [])
+
+  async function toggleFullscreen() {
+    const panel = panelRef.current
+    if (!panel) return
+    try {
+      if (document.fullscreenElement === panel) {
+        await document.exitFullscreen()
+      } else {
+        await panel.requestFullscreen()
+      }
+    } catch {
+      // Browser blocked fullscreen or the API is unavailable.
+    }
+  }
 
   useEffect(() => {
     desksRef.current = desks
@@ -339,15 +363,22 @@ export function ClassroomCanvas({
   const studentById = new Map(students.map((student) => [student.id, student]))
   const box = marquee ? marqueeBox(marquee) : null
   return (
-    <section className="canvas-panel print-sheet">
+    <section
+      ref={panelRef}
+      className={
+        isFullscreen
+          ? 'canvas-panel canvas-panel-fullscreen print-sheet'
+          : 'canvas-panel print-sheet'
+      }
+    >
       <h2 className="print-class-name">{className}</h2>
       <div className="canvas-toolbar no-print">
-        <button type="button" className="btn" onClick={onAddDesk}>
+        <button type="button" className="btn btn-edit" onClick={onAddDesk}>
           Add desk
         </button>
         <button
           type="button"
-          className="btn btn-muted"
+          className="btn btn-muted btn-edit"
           onClick={() => {
             if (!desks.some((desk) => desk.studentId)) return
             if (
@@ -363,7 +394,7 @@ export function ClassroomCanvas({
         </button>
         <button
           type="button"
-          className="btn btn-muted"
+          className="btn btn-muted btn-edit"
           onClick={() => {
             if (desks.length === 0 || students.length === 0) return
             onAssignRandomly()
@@ -377,6 +408,18 @@ export function ClassroomCanvas({
           onClick={() => onFlipView()}
         >
           {frontAtTop ? "Teacher's view" : "Students' view"}
+        </button>
+        <button
+          type="button"
+          className="btn btn-muted"
+          onClick={() => void toggleFullscreen()}
+          title={
+            isFullscreen
+              ? 'Exit full screen (Esc)'
+              : 'Show the desks full screen'
+          }
+        >
+          {isFullscreen ? 'Exit full screen' : 'Full screen'}
         </button>
       </div>
       <div

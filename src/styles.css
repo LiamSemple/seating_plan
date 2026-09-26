@@ -172,6 +172,36 @@ textarea {
   gap: 8px;
 }
 
+.canvas-panel:fullscreen,
+.canvas-panel-fullscreen {
+  box-sizing: border-box;
+  width: 100%;
+  height: 100%;
+  padding: 16px;
+  background: #f7f1e4;
+  gap: 10px;
+}
+
+.canvas-panel:fullscreen .print-class-name,
+.canvas-panel-fullscreen .print-class-name {
+  display: block;
+  margin: 0;
+  text-align: center;
+  font-size: 1.35rem;
+  font-weight: 600;
+  color: #2f5a45;
+}
+
+.canvas-panel:fullscreen .canvas,
+.canvas-panel-fullscreen .canvas {
+  border-radius: 12px;
+}
+
+.canvas-panel:fullscreen .btn-edit,
+.canvas-panel-fullscreen .btn-edit {
+  display: none;
+}
+
 .canvas-toolbar {
   display: flex;
   flex-wrap: wrap;
